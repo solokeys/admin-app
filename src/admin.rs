@@ -37,7 +37,6 @@ pub struct App<T, R>
 where T: TrussedClient,
       R: Reboot,
 {
-    got_wink: bool,
     trussed: T,
     uuid: [u8; 16],
     version: u32,
@@ -49,17 +48,7 @@ where T: TrussedClient,
       R: Reboot,
 {
     pub fn new(client: T, uuid: [u8; 16], version: u32) -> Self {
-        Self { got_wink: false, trussed: client, uuid, version, boot_interface: PhantomData }
-    }
-
-    /// Indicate if a wink was recieved
-    pub fn wink(&mut self) -> bool {
-        if self.got_wink {
-            self.got_wink = false;
-            true
-        } else {
-            false
-        }
+        Self { trussed: client, uuid, version, boot_interface: PhantomData }
     }
 
     fn user_present(&mut self) -> bool {
@@ -113,7 +102,9 @@ where T: TrussedClient,
                 // GET VERSION
                 response.extend_from_slice(&self.version.to_be_bytes()).ok();
             }
-            HidCommand::Wink => self.got_wink = true,
+            HidCommand::Wink => {
+                syscall!(self.trussed.wink(core::time::Duration::from_secs(10)));
+            }
             _ => {
                 return Err(hid::Error::InvalidCommand);
             }
