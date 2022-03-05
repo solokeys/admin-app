@@ -1,13 +1,13 @@
 [package]
 name = "admin-app"
 version = "0.1.0"
-authors = ["Conor Patrick <conor@solokeys.com>"]
-edition = "2018"
+authors = ["Conor Patrick <conor@solokeys.com>", "Nicolas Stalder <nicolas@solokeys.com>"]
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-apdu-dispatch = { git = "https://github.com/solokeys/apdu-dispatch" }
-ctaphid-dispatch = { git = "https://github.com/solokeys/ctaphid-dispatch" }
-iso7816 = { git = "https://github.com/ycrypto/iso7816" }
+apdu-dispatch = "0.1"
+ctaphid-dispatch = "0.1"
+iso7816 = "0.1"
 trussed = { git = "https://github.com/trussed-dev/trussed" }
