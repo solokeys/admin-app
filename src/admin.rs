@@ -103,6 +103,7 @@ where T: TrussedClient,
                 response.extend_from_slice(&self.version.to_be_bytes()).ok();
             }
             HidCommand::Wink => {
+                debug_now!("winking");
                 syscall!(self.trussed.wink(core::time::Duration::from_secs(10)));
             }
             _ => {
@@ -136,6 +137,11 @@ where T: TrussedClient,
 
     fn call(&mut self, interface: apdu::Interface, apdu: &Command, reply: &mut response::Data) -> apdu::Result {
         let instruction: u8 = apdu.instruction().into();
+
+        if instruction == 0x08 {
+            syscall!(self.trussed.wink(core::time::Duration::from_secs(10)));
+            return Ok(());
+        }
 
         let command: VendorCommand = instruction.try_into().map_err(|_e| Status::InstructionNotSupportedOrInvalid)?;
 
