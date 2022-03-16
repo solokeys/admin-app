@@ -8,11 +8,14 @@ use trussed::{
     Client as TrussedClient,
 };
 
+pub const USER_PRESENCE_TIMEOUT_SECS: u32 = 15;
+
 const UPDATE: VendorCommand = VendorCommand::H51;
 const REBOOT: VendorCommand = VendorCommand::H53;
 const RNG: VendorCommand = VendorCommand::H60;
 const VERSION: VendorCommand = VendorCommand::H61;
 const UUID: VendorCommand = VendorCommand::H62;
+const LOCKED: VendorCommand = VendorCommand::H63;
 
 pub trait Reboot {
     /// Reboots the device.
@@ -31,6 +34,10 @@ pub trait Reboot {
     /// reliable way of rebooting into the firmware mode of operation,
     /// does so.
     fn reboot_to_firmware_update_destructive() -> !;
+
+    /// Is device bootloader locked down?
+    /// E.g., is secure boot enabled?
+    fn locked() -> bool;
 }
 
 pub struct App<T, R>
@@ -52,7 +59,7 @@ where T: TrussedClient,
     }
 
     fn user_present(&mut self) -> bool {
-        let user_present = syscall!(self.trussed.confirm_user_present(15_000)).result;
+        let user_present = syscall!(self.trussed.confirm_user_present(USER_PRESENCE_TIMEOUT_SECS * 1000)).result;
         user_present.is_ok()
     }
 
@@ -71,12 +78,18 @@ where T: TrussedClient,
             HidCommand::Vendor(RNG),
             HidCommand::Vendor(VERSION),
             HidCommand::Vendor(UUID),
+            HidCommand::Vendor(LOCKED),
         ]
     }
 
     fn call(&mut self, command: HidCommand, input_data: &Message, response: &mut Message) -> hid::AppResult {
         match command {
             HidCommand::Vendor(REBOOT) => R::reboot(),
+            HidCommand::Vendor(LOCKED) => {
+                response.extend_from_slice(
+                    &[R::locked() as u8]
+                ).ok();
+            }
             HidCommand::Vendor(RNG) => {
                 // Fill the HID packet (57 bytes)
                 response.extend_from_slice(
@@ -147,6 +160,10 @@ where T: TrussedClient,
 
         match command {
             REBOOT => R::reboot(),
+            LOCKED => {
+                // Random bytes
+                reply.extend_from_slice(&[R::locked() as u8]).ok();
+            }
             RNG => {
                 // Random bytes
                 reply.extend_from_slice(&syscall!(self.trussed.random_bytes(57)).bytes.as_slice()).ok();
